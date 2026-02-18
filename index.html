@@ -343,8 +343,8 @@ select:disabled{opacity:.45;cursor:not-allowed}
 
 <div id="toast" class="toast"></div>
 
-<!-- MSAL (Microsoft Authentication Library) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/msal/1.4.18/msal.min.js"></script>
+<!-- MSAL v2 (Microsoft Authentication Library) -->
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -464,11 +464,11 @@ function saveConfig() {
 }
 
 function initMsal() {
-  msalApp = new Msal.UserAgentApplication({
+  msalApp = new msal.PublicClientApplication({
     auth: {
       clientId: CFG.clientId,
       authority: "https://login.microsoftonline.com/common",
-      redirectUri: window.location.href.split('?')[0]
+      redirectUri: window.location.origin + window.location.pathname
     },
     cache: { cacheLocation: "localStorage", storeAuthStateInCookie: true }
   });
@@ -477,40 +477,45 @@ function initMsal() {
 async function attemptSilentLogin() {
   if (!msalApp) return;
   try {
-    const account = msalApp.getAccount();
-    if (!account) { showSetup(); return; }
-    const resp = await msalApp.acquireTokenSilent({ scopes: SCOPES });
+    // Handle redirect response first (required by MSAL v2)
+    await msalApp.handleRedirectPromise();
+    const accounts = msalApp.getAllAccounts();
+    if (!accounts.length) { showSetup(); return; }
+    const resp = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
     accessToken = resp.accessToken;
-    await onSignedIn(account);
+    await onSignedIn(accounts[0]);
   } catch(e) {
     showSetup();
   }
 }
 
 async function signIn() {
-  showLoading('Signing in…');
+  showLoading('Opening sign-in window…');
   try {
+    // Handle any pending redirect first
+    await msalApp.handleRedirectPromise();
     const resp = await msalApp.loginPopup({ scopes: SCOPES });
     accessToken = resp.accessToken;
-    await onSignedIn(msalApp.getAccount());
+    await onSignedIn(resp.account);
   } catch(e) {
     hideLoading();
-    showToast('Sign-in failed. Please try again.','err');
+    console.error('Sign-in error:', e);
+    showToast('Sign-in failed: ' + (e.message || 'Unknown error'), 'err');
   }
 }
 
 async function onSignedIn(account) {
-  const name  = account.name  || account.userName;
-  const email = account.userName;
-  document.getElementById('userName').textContent    = name;
-  document.getElementById('userEmail').textContent   = email;
+  const name  = account.name  || account.username;
+  const email = account.username;
+  document.getElementById('userName').textContent     = name;
+  document.getElementById('userEmail').textContent    = email;
   document.getElementById('settingsName').textContent = name;
-  document.getElementById('settingsEmail').textContent = email;
-  document.getElementById('settingsFile').textContent  = CFG.filePath;
+  document.getElementById('settingsEmail').textContent= email;
+  document.getElementById('settingsFile').textContent = CFG.filePath;
 
   // Get a fresh token with Files.ReadWrite
   try {
-    const tr = await msalApp.acquireTokenSilent({ scopes: SCOPES });
+    const tr = await msalApp.acquireTokenSilent({ scopes: SCOPES, account });
     accessToken = tr.accessToken;
   } catch(e) {
     const tr = await msalApp.acquireTokenPopup({ scopes: SCOPES });
@@ -533,7 +538,10 @@ function showSetup() {
   document.getElementById('appShell').style.display = 'none';
 }
 function signOut() {
-  msalApp && msalApp.logout();
+  if (msalApp) {
+    const accounts = msalApp.getAllAccounts();
+    if (accounts.length) msalApp.logoutPopup({ account: accounts[0] });
+  }
   showSetup();
 }
 function resetConfig() {
@@ -547,7 +555,8 @@ function resetConfig() {
 async function graphFetch(url, opts={}) {
   // Refresh token if needed
   try {
-    const tr = await msalApp.acquireTokenSilent({ scopes: SCOPES });
+    const accounts = msalApp.getAllAccounts();
+    const tr = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
     accessToken = tr.accessToken;
   } catch(e) {}
 
