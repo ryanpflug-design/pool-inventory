@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pool Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --navy:    #08121f;
+  --deep:    #0d1f35;
+  --surface: #112540;
+  --surface2:#163050;
+  --surface3:#1c3a5e;
+  --blue:    #1a5fa8;
+  --sky:     #2e8fff;
+  --aqua:    #00d4e8;
+  --aqua15:  rgba(0,212,232,.15);
+  --white:   #e8f4ff;
+  --muted:   #6a90b8;
+  --green:   #22d98a;
+  --red:     #f05050;
+  --amber:   #f0a020;
+  --r:       12px;
+  --sh:      0 4px 28px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--white);min-height:100vh}
+
+/* ── SETUP SCREEN ── */
+#setupScreen{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;padding:24px;
+}
+.setup-card{
+  background:var(--surface);border:1px solid rgba(0,212,232,.2);
+  border-radius:20px;padding:36px 28px;max-width:480px;width:100%;
+  box-shadow:var(--sh);
+}
+.setup-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--aqua);margin-bottom:4px}
+.setup-logo span{color:var(--white)}
+.setup-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.setup-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.setup-input{
+  width:100%;background:var(--surface2);border:1.5px solid rgba(255,255,255,.1);
+  border-radius:10px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:15px;
+  padding:13px 14px;outline:none;margin-bottom:16px;
+}
+.setup-input:focus{border-color:var(--aqua)}
+.setup-hint{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:24px;background:var(--aqua15);border-radius:8px;padding:12px 14px}
+.setup-hint code{color:var(--aqua);font-size:12px;font-family:'Courier New',monospace}
+.btn-setup{
+  width:100%;padding:15px;border-radius:10px;border:none;
+  font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;
+  background:var(--aqua);color:var(--navy);cursor:pointer;
+}
+
+/* ── MAIN APP ── */
+#appShell{display:none;height:100vh;flex-direction:column}
+
+header{
+  background:var(--surface);border-bottom:1px solid rgba(0,212,232,.15);
+  padding:0 18px;display:flex;align-items:center;justify-content:space-between;
+  height:60px;flex-shrink:0;box-shadow:0 2px 16px rgba(0,0,0,.4);
+}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--aqua)}
+.logo span{color:var(--white)}
+#userInfo{font-size:12px;color:var(--muted);text-align:right;line-height:1.4}
+#userInfo strong{color:var(--white);display:block}
+
+nav{
+  display:flex;background:var(--surface);border-bottom:1px solid rgba(255,255,255,.06);
+  padding:0 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;
+}
+nav::-webkit-scrollbar{display:none}
+.tab{
+  padding:11px 16px;font-size:13px;font-weight:500;color:var(--muted);
+  border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;
+  transition:all .2s;white-space:nowrap;
+}
+.tab.active{color:var(--aqua);border-bottom-color:var(--aqua)}
+
+.pages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.page{display:none;padding:18px 16px 90px;max-width:660px;margin:0 auto}
+.page.active{display:block}
+
+/* ── SECTION TITLE ── */
+.stitle{
+  font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:1.5px;
+  color:var(--aqua);margin-bottom:14px;display:flex;align-items:center;gap:10px;
+}
+.stitle::after{content:'';flex:1;height:1px;background:rgba(0,212,232,.18)}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh)}
+.clabel{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+
+/* ── FORM ── */
+select,.finput{
+  width:100%;background:var(--surface2);border:1.5px solid rgba(255,255,255,.1);
+  border-radius:9px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:16px;
+  padding:13px 14px;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .2s;
+}
+select:focus,.finput:focus{border-color:var(--aqua)}
+select:disabled{opacity:.45;cursor:not-allowed}
+.swrap{position:relative}
+.swrap::after{content:'▾';position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--aqua);pointer-events:none;font-size:18px}
+
+/* ── PRICE STRIP ── */
+.pstrip{
+  background:var(--aqua15);border:1px solid rgba(0,212,232,.25);border-radius:9px;
+  padding:13px 15px;display:flex;justify-content:space-between;align-items:center;
+  margin-top:11px;transition:opacity .3s;
+}
+.pstrip.hidden{opacity:0;pointer-events:none;height:0;padding:0;margin:0;border:none;overflow:hidden}
+.plabel{font-size:11px;color:var(--muted);font-weight:500}
+.pval{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--aqua);letter-spacing:.5px}
+
+/* ── STOCK BADGE ── */
+.sbadge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;font-size:13px;font-weight:600;margin-top:9px;transition:all .2s}
+.sbadge.good{background:rgba(34,217,138,.12);color:var(--green);border:1px solid rgba(34,217,138,.25)}
+.sbadge.bad{background:rgba(240,80,80,.12);color:var(--red);border:1px solid rgba(240,80,80,.25)}
+.sbadge.hide{display:none}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+/* ── BUTTONS ── */
+.btn{width:100%;padding:15px;border-radius:11px;border:none;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1.5px;cursor:pointer;transition:all .15s;margin-top:7px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--aqua);color:var(--navy)}
+.btn-primary:disabled{background:var(--surface3);color:var(--muted);cursor:not-allowed;transform:none}
+.btn-undo{background:rgba(240,80,80,.12);color:var(--red);border:1px solid rgba(240,80,80,.28);font-size:16px}
+.btn-signout{background:var(--surface2);color:var(--muted);border:1px solid rgba(255,255,255,.08);font-size:15px;margin-top:4px}
+
+/* ── SPINNER / OVERLAY ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(8,18,31,.8);z-index:300;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+}
+.overlay.hide{display:none}
+.spinner{width:36px;height:36px;border:3px solid rgba(0,212,232,.2);border-top-color:var(--aqua);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay p{font-size:14px;color:var(--muted)}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(70px);
+  background:var(--surface3);border:1px solid rgba(0,212,232,.25);border-radius:11px;
+  padding:13px 20px;font-size:14px;font-weight:500;color:var(--white);z-index:400;
+  transition:transform .3s cubic-bezier(.175,.885,.32,1.275);white-space:nowrap;
+  box-shadow:0 8px 28px rgba(0,0,0,.5);max-width:88vw;text-align:center;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:rgba(34,217,138,.35)}
+.toast.err{border-color:rgba(240,80,80,.35)}
+
+/* ── MODAL ── */
+.mbackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:flex-end;justify-content:center}
+.mbackdrop.open{display:flex}
+.modal{background:var(--surface);border-radius:18px 18px 0 0;border-top:1px solid rgba(0,212,232,.25);padding:26px 22px 38px;width:100%;max-width:660px;animation:slideUp .28s cubic-bezier(.175,.885,.32,1.1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mtitle{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:1px;margin-bottom:5px}
+.mbody{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.7}
+.mbody strong{color:var(--white)}
+.mbtns{display:flex;gap:10px}
+.mbtns .btn{margin-top:0;font-size:17px}
+.btn-cancel{background:var(--surface2);color:var(--white);border:1px solid rgba(255,255,255,.1)}
+
+/* ── INVENTORY ── */
+.mblock{margin-bottom:20px}
+.mhead{
+  font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;
+  background:var(--surface2);padding:10px 14px;border-radius:10px 10px 0 0;
+  border:1px solid rgba(255,255,255,.07);border-bottom:none;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.mavail{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600}
+.srows{border:1px solid rgba(255,255,255,.07);border-radius:0 0 10px 10px;overflow:hidden}
+.srow{display:grid;grid-template-columns:82px 1fr 52px;align-items:center;padding:9px 13px;border-bottom:1px solid rgba(255,255,255,.04);gap:8px;background:var(--surface)}
+.srow:last-child{border-bottom:none}
+.srow:nth-child(even){background:var(--surface2)}
+.slbl{font-size:13px;font-weight:600;color:var(--aqua)}
+.clist{font-size:12px;color:var(--muted);line-height:1.65}
+.cname{color:var(--white)}
+.acount{font-family:'Bebas Neue',sans-serif;font-size:22px;text-align:right}
+.acount.g{color:var(--green)}.acount.a{color:var(--amber)}.acount.r{color:var(--red)}
+
+/* ── PRICE TABLE ── */
+.ptcard{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.ptable{width:100%;border-collapse:collapse;font-size:13px}
+.ptable th{background:var(--surface2);padding:9px 7px;text-align:center;font-size:11px;font-weight:600;letter-spacing:.4px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.07)}
+.ptable th:first-child{text-align:left;padding-left:12px}
+.ptable td{padding:9px 7px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04);background:var(--surface)}
+.ptable td:first-child{text-align:left;padding-left:12px;font-weight:600;color:var(--aqua)}
+.ptable tr:nth-child(even) td{background:var(--surface2)}
+
+.igrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:9px}
+.icell{background:var(--surface2);border-radius:8px;padding:10px;text-align:center}
+.icell-lbl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.4px}
+.icell-val{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--aqua);margin-top:2px}
+
+.empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SETUP SCREEN ══════════════ -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">POOL<span>TRACK</span></div>
+    <div class="setup-sub">Above Ground Pool Inventory — OneDrive Edition</div>
+
+    <div class="setup-label">Azure App Client ID</div>
+    <input class="setup-input" id="clientIdInput" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" autocorrect="off" spellcheck="false">
+
+    <div class="setup-label">OneDrive File Path</div>
+    <input class="setup-input" id="filePathInput" value="Above_Ground_Price_List_and_InventoryCopy.xlsx" autocorrect="off" spellcheck="false">
+
+    <div class="setup-hint">
+      <strong style="color:var(--white);display:block;margin-bottom:6px">📋 Where to find these:</strong>
+      <b style="color:var(--white)">Client ID:</b> Azure Portal → App Registrations → your app → Overview → Application (client) ID<br><br>
+      <b style="color:var(--white)">File Path:</b> The filename as it appears in your OneDrive root. If it's in a folder, use <code>FolderName/filename.xlsx</code>
+    </div>
+
+    <button class="btn-setup" onclick="saveConfig()">Save &amp; Sign In →</button>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="appShell" style="display:none;flex-direction:column;height:100vh">
+
+  <header>
+    <div class="logo">POOL<span>TRACK</span></div>
+    <div id="userInfo"><strong id="userName">—</strong><span id="userEmail"></span></div>
+  </header>
+
+  <nav>
+    <button class="tab active" onclick="showTab('entry',this)">＋ New Sale</button>
+    <button class="tab" onclick="showTab('inventory',this)">Inventory</button>
+    <button class="tab" onclick="showTab('prices',this)">Price List</button>
+    <button class="tab" onclick="showTab('settings',this)">Settings</button>
+  </nav>
+
+  <div class="pages">
+
+    <!-- NEW SALE -->
+    <div id="page-entry" class="page active">
+      <div class="stitle">New Sale Entry</div>
+
+      <div class="card">
+        <div class="clabel">Pool Model</div>
+        <div class="swrap">
+          <select id="selModel" onchange="onModelChange()">
+            <option value="">— Select Model —</option>
+            <option>Definition</option><option>Sovana</option><option>Lumina</option>
+            <option>Sanctuary</option><option>Reflexion</option><option>Anchor</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="clabel">Pool Size</div>
+        <div class="swrap">
+          <select id="selSize" onchange="onSizeChange()" disabled>
+            <option value="">— Select Size —</option>
+          </select>
+        </div>
+        <div id="sbadge" class="sbadge hide"></div>
+        <div id="pstrip" class="pstrip hidden">
+          <div><div class="plabel">Pool Price</div><div class="pval" id="pPrice">—</div></div>
+          <div style="text-align:center"><div class="plabel">Installation</div><div style="font-family:'Bebas Neue';font-size:18px;color:var(--muted)" id="pInstall">—</div></div>
+          <div style="text-align:right"><div class="plabel">Total</div><div style="font-family:'Bebas Neue';font-size:22px" id="pTotal">—</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="clabel">Customer Name</div>
+        <input class="finput" id="custName" type="text" placeholder="First &amp; Last Name" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+
+      <button class="btn btn-primary" id="btnAdd" onclick="addSale()">Record Sale</button>
+      <button class="btn btn-undo" onclick="openUndo()">↩  Undo Last Entry</button>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="page-inventory" class="page">
+      <div class="stitle">Live Inventory</div>
+      <div id="invContent"><div style="text-align:center;padding:60px 0;color:var(--muted)">Select this tab to load inventory</div></div>
+    </div>
+
+    <!-- PRICES -->
+    <div id="page-prices" class="page">
+      <div class="stitle">Price List</div>
+      <div class="ptcard">
+        <table class="ptable">
+          <thead><tr><th>Size</th><th>Definition</th><th>Sovana</th><th>Lumina</th><th>Sanctuary</th><th>Reflexion</th><th>Anchor</th></tr></thead>
+          <tbody id="priceBody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="clabel">Installation Pricing</div>
+        <div class="igrid" id="installGrid"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div class="stitle">Settings</div>
+      <div class="card">
+        <div class="clabel">Signed In As</div>
+        <div style="font-size:15px;margin-bottom:4px" id="settingsName">—</div>
+        <div style="font-size:12px;color:var(--muted)" id="settingsEmail">—</div>
+      </div>
+      <div class="card">
+        <div class="clabel">Excel File</div>
+        <div style="font-size:13px;color:var(--muted)" id="settingsFile">—</div>
+      </div>
+      <button class="btn btn-signout" onclick="signOut()">Sign Out</button>
+      <button class="btn btn-signout" onclick="resetConfig()" style="margin-top:8px;color:var(--red)">Reset App Configuration</button>
+    </div>
+
+  </div><!-- /pages -->
+</div><!-- /appShell -->
+
+<!-- UNDO MODAL -->
+<div id="undoModal" class="mbackdrop">
+  <div class="modal">
+    <div class="mtitle" style="color:var(--red)">↩ Undo Last Entry</div>
+    <div class="mbody" id="undoBody">—</div>
+    <div class="mbtns">
+      <button class="btn btn-cancel" onclick="closeUndo()">Cancel</button>
+      <button class="btn btn-undo" onclick="confirmUndo()" style="border:1px solid rgba(240,80,80,.35)">Yes, Remove It</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loadOverlay" class="overlay hide">
+  <div class="spinner"></div>
+  <p id="loadMsg">Working…</p>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- MSAL (Microsoft Authentication Library) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/msal/1.4.18/msal.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATIC DATA
+// ═══════════════════════════════════════════════════════
+const PRICES = {
+  Definition:{  "15ft":5799,"18ft":6199,"21ft":6599,"24ft":6999,"27ft":7399,"30ft":7899},
+  Sovana:    {  "15ft":6199,"18ft":6599,"21ft":6999,"24ft":7399,"27ft":7799,"30ft":8299},
+  Lumina:    {  "15ft":6799,"18ft":7199,"21ft":7599,"24ft":7999,"27ft":8399,"30ft":8899},
+  Sanctuary: {  "15ft":7199,"18ft":7599,"21ft":7999,"24ft":8399,"27ft":8799,"30ft":9299},
+  Reflexion: {  "15ft":7799,"18ft":8199,"21ft":8599,"24ft":8999,"27ft":9399,"30ft":9899},
+  Anchor:    {  "15ft":8199,"18ft":8599,"21ft":8999,"24ft":9399,"27ft":9799,"30ft":10299}
+};
+const INSTALL = {"15ft":1300,"18ft":1400,"21ft":1450,"24ft":1500,"27ft":1550,"30ft":1600};
+const MODELS  = ["Definition","Sovana","Lumina","Sanctuary","Reflexion","Anchor"];
+const SIZES   = ["15ft","18ft","21ft","24ft","27ft","30ft"];
+
+// Size label per model (52" vs 54")
+const SLABELS = {
+  Definition:{"15ft":`15' × 52"`,"18ft":`18' × 52"`,"21ft":`21' × 52"`,"24ft":`24' × 52"`,"27ft":`27' × 52"`,"30ft":`30' × 52"`},
+  Sovana:    {"15ft":`15' × 52"`,"18ft":`18' × 52"`,"21ft":`21' × 52"`,"24ft":`24' × 52"`,"27ft":`27' × 52"`,"30ft":`30' × 52"`},
+  Lumina:    {"15ft":`15' × 52"`,"18ft":`18' × 52"`,"21ft":`21' × 52"`,"24ft":`24' × 52"`,"27ft":`27' × 52"`,"30ft":`30' × 52"`},
+  Sanctuary: {"15ft":`15' × 54"`,"18ft":`18' × 54"`,"21ft":`21' × 54"`,"24ft":`24' × 54"`,"27ft":`27' × 54"`,"30ft":`30' × 54"`},
+  Reflexion: {"15ft":`15' × 54"`,"18ft":`18' × 54"`,"21ft":`21' × 54"`,"24ft":`24' × 54"`,"27ft":`27' × 54"`,"30ft":`30' × 54"`},
+  Anchor:    {"15ft":`15' × 54"`,"18ft":`18' × 54"`,"21ft":`21' × 54"`,"24ft":`24' × 54"`,"27ft":`27' × 54"`,"30ft":`30' × 54"`}
+};
+
+// Exact cell map from your Excel file:
+// For each model+size: nameCol = the column letter where customer names go (one right of the X marker)
+// slots = array of {row, nameCol} for every X-marked row, in order
+const CELL_MAP = {
+  Definition:{
+    "15ft":{nameCol:"C",slots:[{r:6},{r:7}]},
+    "18ft":{nameCol:"G",slots:[{r:6},{r:7}]},
+    "21ft":{nameCol:"K",slots:[{r:6},{r:7},{r:8},{r:9},{r:10}]},
+    "24ft":{nameCol:"O",slots:[{r:6},{r:7},{r:8},{r:9},{r:10},{r:11},{r:12}]},
+    "27ft":{nameCol:"S",slots:[{r:6},{r:7},{r:8}]},
+    "30ft":{nameCol:"W",slots:[{r:6},{r:7},{r:8}]}
+  },
+  Sovana:{
+    "15ft":{nameCol:"C",slots:[{r:6},{r:7}]},
+    "18ft":{nameCol:"G",slots:[{r:6},{r:7},{r:8}]},
+    "21ft":{nameCol:"K",slots:[{r:6},{r:7},{r:8}]},
+    "24ft":{nameCol:"O",slots:[{r:6},{r:7},{r:8},{r:9},{r:10}]},
+    "27ft":{nameCol:"S",slots:[{r:6},{r:7},{r:8},{r:9},{r:10}]},
+    "30ft":{nameCol:"W",slots:[{r:6},{r:7},{r:8}]}
+  },
+  Lumina:{
+    "15ft":{nameCol:"C",slots:[{r:6}]},
+    "18ft":{nameCol:"G",slots:[{r:6},{r:7},{r:8},{r:9}]},
+    "21ft":{nameCol:"K",slots:[{r:6},{r:7},{r:8},{r:9},{r:10}]},
+    "24ft":{nameCol:"O",slots:[{r:6},{r:7},{r:8},{r:9},{r:10},{r:11},{r:12},{r:13},{r:14}]},
+    "27ft":{nameCol:"S",slots:[{r:6},{r:7},{r:8},{r:9},{r:10},{r:11}]},
+    "30ft":{nameCol:"W",slots:[{r:6},{r:7},{r:8},{r:9},{r:10}]}
+  },
+  Sanctuary:{
+    "15ft":{nameCol:"C",slots:[{r:6}]},
+    "18ft":{nameCol:"G",slots:[{r:6},{r:7}]},
+    "21ft":{nameCol:"K",slots:[{r:6},{r:7},{r:8}]},
+    "24ft":{nameCol:"O",slots:[{r:6},{r:7},{r:8},{r:9},{r:10}]},
+    "27ft":{nameCol:"S",slots:[{r:6},{r:7},{r:8},{r:9}]},
+    "30ft":{nameCol:"W",slots:[{r:6},{r:7},{r:8}]}
+  },
+  Reflexion:{
+    "15ft":{nameCol:"C",slots:[{r:6}]},
+    "18ft":{nameCol:"G",slots:[{r:6}]},
+    "21ft":{nameCol:"K",slots:[{r:6},{r:7}]},
+    "24ft":{nameCol:"O",slots:[{r:6},{r:7},{r:8},{r:9}]},
+    "27ft":{nameCol:"S",slots:[{r:6},{r:7},{r:8},{r:9}]},
+    "30ft":{nameCol:"W",slots:[{r:6},{r:7},{r:8},{r:9}]}
+  },
+  Anchor:{
+    "15ft":{nameCol:"C",slots:[{r:6},{r:7},{r:8}]},
+    "18ft":{nameCol:"G",slots:[{r:6},{r:7}]},
+    "21ft":{nameCol:"K",slots:[{r:6},{r:7},{r:8}]},
+    "24ft":{nameCol:"O",slots:[{r:6},{r:7},{r:8},{r:9},{r:10},{r:11},{r:12},{r:13},{r:14}]},
+    "27ft":{nameCol:"S",slots:[{r:6},{r:7},{r:8},{r:9},{r:10}]},
+    "30ft":{nameCol:"W",slots:[{r:6},{r:7},{r:8},{r:9},{r:10},{r:11},{r:12}]}
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+//  CONFIG & STATE
+// ═══════════════════════════════════════════════════════
+let CFG = {};      // {clientId, filePath}
+let msalApp = null;
+let accessToken = null;
+let fileId = null; // OneDrive item ID for the Excel file
+let lastEntry = null; // {sheet, cellAddress, prevValue}
+
+const SCOPES = ["Files.ReadWrite","User.Read"];
+const GRAPH  = "https://graph.microsoft.com/v1.0";
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+window.onload = function() {
+  renderPrices();
+  const saved = localStorage.getItem('pooltrack_config');
+  if (saved) {
+    CFG = JSON.parse(saved);
+    document.getElementById('clientIdInput').value = CFG.clientId || '';
+    document.getElementById('filePathInput').value = CFG.filePath || 'Above_Ground_Price_List_and_InventoryCopy.xlsx';
+    initMsal();
+    attemptSilentLogin();
+  }
+};
+
+function saveConfig() {
+  const clientId = document.getElementById('clientIdInput').value.trim();
+  const filePath = document.getElementById('filePathInput').value.trim();
+  if (!clientId) { alert('Please enter your Azure App Client ID.'); return; }
+  CFG = { clientId, filePath };
+  localStorage.setItem('pooltrack_config', JSON.stringify(CFG));
+  initMsal();
+  signIn();
+}
+
+function initMsal() {
+  msalApp = new Msal.UserAgentApplication({
+    auth: {
+      clientId: CFG.clientId,
+      authority: "https://login.microsoftonline.com/common",
+      redirectUri: window.location.href.split('?')[0]
+    },
+    cache: { cacheLocation: "localStorage", storeAuthStateInCookie: true }
+  });
+}
+
+async function attemptSilentLogin() {
+  if (!msalApp) return;
+  try {
+    const account = msalApp.getAccount();
+    if (!account) { showSetup(); return; }
+    const resp = await msalApp.acquireTokenSilent({ scopes: SCOPES });
+    accessToken = resp.accessToken;
+    await onSignedIn(account);
+  } catch(e) {
+    showSetup();
+  }
+}
+
+async function signIn() {
+  showLoading('Signing in…');
+  try {
+    const resp = await msalApp.loginPopup({ scopes: SCOPES });
+    accessToken = resp.accessToken;
+    await onSignedIn(msalApp.getAccount());
+  } catch(e) {
+    hideLoading();
+    showToast('Sign-in failed. Please try again.','err');
+  }
+}
+
+async function onSignedIn(account) {
+  const name  = account.name  || account.userName;
+  const email = account.userName;
+  document.getElementById('userName').textContent    = name;
+  document.getElementById('userEmail').textContent   = email;
+  document.getElementById('settingsName').textContent = name;
+  document.getElementById('settingsEmail').textContent = email;
+  document.getElementById('settingsFile').textContent  = CFG.filePath;
+
+  // Get a fresh token with Files.ReadWrite
+  try {
+    const tr = await msalApp.acquireTokenSilent({ scopes: SCOPES });
+    accessToken = tr.accessToken;
+  } catch(e) {
+    const tr = await msalApp.acquireTokenPopup({ scopes: SCOPES });
+    accessToken = tr.accessToken;
+  }
+
+  showLoading('Locating Excel file…');
+  await resolveFileId();
+  hideLoading();
+  showApp();
+}
+
+function showApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  const shell = document.getElementById('appShell');
+  shell.style.display = 'flex';
+}
+function showSetup() {
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('appShell').style.display = 'none';
+}
+function signOut() {
+  msalApp && msalApp.logout();
+  showSetup();
+}
+function resetConfig() {
+  localStorage.removeItem('pooltrack_config');
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════
+//  GRAPH API HELPERS
+// ═══════════════════════════════════════════════════════
+async function graphFetch(url, opts={}) {
+  // Refresh token if needed
+  try {
+    const tr = await msalApp.acquireTokenSilent({ scopes: SCOPES });
+    accessToken = tr.accessToken;
+  } catch(e) {}
+
+  const res = await fetch(GRAPH + url, {
+    ...opts,
+    headers: {
+      'Authorization': 'Bearer ' + accessToken,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Graph API error ${res.status}: ${err}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+async function resolveFileId() {
+  // Encode path segments properly
+  const parts = CFG.filePath.split('/').map(p => encodeURIComponent(p)).join('/');
+  try {
+    const data = await graphFetch(`/me/drive/root:/${parts}`);
+    fileId = data.id;
+  } catch(e) {
+    showToast('Could not find Excel file on OneDrive. Check the file path in Settings.','err');
+    throw e;
+  }
+}
+
+// Read a range from a sheet
+async function readRange(sheet, range) {
+  const enc = encodeURIComponent(sheet);
+  const data = await graphFetch(`/me/drive/items/${fileId}/workbook/worksheets/${enc}/range(address='${range}')`);
+  return data.values; // 2D array
+}
+
+// Write a single cell value
+async function writeCell(sheet, cellAddr, value) {
+  const enc = encodeURIComponent(sheet);
+  await graphFetch(`/me/drive/items/${fileId}/workbook/worksheets/${enc}/range(address='${cellAddr}')`, {
+    method: 'PATCH',
+    body: JSON.stringify({ values: [[value]] })
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════
+function showTab(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+  if (id === 'inventory') loadInventory();
+}
+
+// ═══════════════════════════════════════════════════════
+//  ENTRY FORM
+// ═══════════════════════════════════════════════════════
+function onModelChange() {
+  const model = document.getElementById('selModel').value;
+  const sel   = document.getElementById('selSize');
+  sel.innerHTML = '<option value="">— Select Size —</option>';
+  sel.disabled = !model;
+  document.getElementById('sbadge').className = 'sbadge hide';
+  document.getElementById('pstrip').classList.add('hidden');
+  if (!model) return;
+  SIZES.forEach(sz => {
+    const o = document.createElement('option');
+    o.value = sz; o.textContent = SLABELS[model][sz];
+    sel.appendChild(o);
+  });
+}
+
+async function onSizeChange() {
+  const model = document.getElementById('selModel').value;
+  const size  = document.getElementById('selSize').value;
+  const badge = document.getElementById('sbadge');
+  const strip = document.getElementById('pstrip');
+  if (!model || !size) { badge.className='sbadge hide'; strip.classList.add('hidden'); return; }
+
+  // Show price immediately
+  const price   = PRICES[model][size];
+  const install = INSTALL[size];
+  document.getElementById('pPrice').textContent   = '$' + price.toLocaleString();
+  document.getElementById('pInstall').textContent = '$' + install.toLocaleString();
+  document.getElementById('pTotal').textContent   = '$' + (price+install).toLocaleString();
+  strip.classList.remove('hidden');
+
+  // Check stock from Excel
+  badge.className = 'sbadge';
+  badge.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Checking stock…';
+
+  try {
+    const avail = await getAvailableSlot(model, size, false);
+    if (avail !== null) {
+      badge.className = 'sbadge good';
+      badge.innerHTML = `<span class="dot"></span> ${avail.count} Available`;
+    } else {
+      badge.className = 'sbadge bad';
+      badge.innerHTML = `<span class="dot"></span> Not In Stock`;
+    }
+  } catch(e) {
+    badge.className = 'sbadge';
+    badge.innerHTML = '⚠ Could not check stock';
+    badge.style.color = 'var(--amber)';
+  }
+}
+
+// Returns {row, cellAddr, count} of first available slot, or null if none
+async function getAvailableSlot(model, size, returnCount=true) {
+  const map   = CELL_MAP[model][size];
+  const slots = map.slots;
+  const col   = map.nameCol;
+
+  // Read all name cells in one call
+  const firstCell = `${col}${slots[0].r}`;
+  const lastCell  = `${col}${slots[slots.length-1].r}`;
+  const values    = await readRange(model, `${firstCell}:${lastCell}`);
+
+  // values is a 2D array — flatten to 1D
+  const flat = values.map(row => row[0]);
+
+  let firstEmpty = null;
+  let emptyCount = 0;
+  flat.forEach((val, i) => {
+    const isEmpty = (val === null || val === '' || val === 0);
+    if (isEmpty) {
+      emptyCount++;
+      if (firstEmpty === null) {
+        firstEmpty = { row: slots[i].r, cellAddr: `${col}${slots[i].r}` };
+      }
+    }
+  });
+
+  if (firstEmpty === null) return null;
+  return { ...firstEmpty, count: emptyCount };
+}
+
+async function addSale() {
+  const model = document.getElementById('selModel').value;
+  const size  = document.getElementById('selSize').value;
+  const name  = document.getElementById('custName').value.trim();
+
+  if (!model || !size || !name) { showToast('Please complete all fields.','err'); return; }
+
+  showLoading('Checking stock…');
+  try {
+    const slot = await getAvailableSlot(model, size);
+    if (!slot) {
+      hideLoading();
+      showToast(`${model} ${size} is not in stock.`,'err');
+      document.getElementById('sbadge').className = 'sbadge bad';
+      document.getElementById('sbadge').innerHTML = `<span class="dot"></span> Not In Stock`;
+      return;
+    }
+
+    setLoadMsg('Saving to Excel…');
+    // Save previous value for undo (should be empty but capture just in case)
+    const prevValues = await readRange(model, slot.cellAddr);
+    const prevValue  = prevValues[0][0];
+
+    await writeCell(model, slot.cellAddr, name);
+
+    lastEntry = { sheet: model, cellAddr: slot.cellAddr, prevValue: prevValue || '' };
+
+    hideLoading();
+    document.getElementById('custName').value = '';
+    document.getElementById('selSize').value  = '';
+    document.getElementById('selModel').value = '';
+    document.getElementById('selSize').disabled = true;
+    document.getElementById('sbadge').className = 'sbadge hide';
+    document.getElementById('pstrip').classList.add('hidden');
+
+    showToast(`✓ ${name} saved to ${model} ${size}`,'ok');
+  } catch(e) {
+    hideLoading();
+    showToast('Error saving. Check your connection.','err');
+    console.error(e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UNDO
+// ═══════════════════════════════════════════════════════
+function openUndo() {
+  if (!lastEntry) { showToast('No recent entry to undo.','err'); return; }
+  const { sheet, cellAddr } = lastEntry;
+  // Read current value to show customer name
+  readRange(sheet, cellAddr).then(vals => {
+    const name = vals[0][0];
+    document.getElementById('undoBody').innerHTML =
+      `Remove this entry from your Excel file?<br><br>
+       <strong>Sheet:</strong> ${sheet}<br>
+       <strong>Cell:</strong> ${cellAddr}<br>
+       <strong>Customer:</strong> ${name || '(empty)'}`;
+    document.getElementById('undoModal').classList.add('open');
+  }).catch(() => {
+    document.getElementById('undoBody').innerHTML =
+      `Remove last entry?<br><br><strong>Sheet:</strong> ${sheet} &nbsp; <strong>Cell:</strong> ${cellAddr}`;
+    document.getElementById('undoModal').classList.add('open');
+  });
+}
+function closeUndo() { document.getElementById('undoModal').classList.remove('open'); }
+
+async function confirmUndo() {
+  if (!lastEntry) return;
+  closeUndo();
+  showLoading('Undoing entry…');
+  try {
+    await writeCell(lastEntry.sheet, lastEntry.cellAddr, lastEntry.prevValue);
+    showToast('↩ Entry removed from Excel','ok');
+    lastEntry = null;
+  } catch(e) {
+    showToast('Undo failed. Check your connection.','err');
+  }
+  hideLoading();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY
+// ═══════════════════════════════════════════════════════
+async function loadInventory() {
+  const el = document.getElementById('invContent');
+  el.innerHTML = '<div style="text-align:center;padding:50px 0"><div class="spinner" style="margin:0 auto"></div><p style="margin-top:14px;color:var(--muted);font-size:13px">Reading from Excel…</p></div>';
+
+  try {
+    let html = '';
+    for (const model of MODELS) {
+      let totalAvail = 0, totalSlots = 0;
+      let sizeRows = '';
+
+      for (const size of SIZES) {
+        const map    = CELL_MAP[model][size];
+        const slots  = map.slots;
+        const col    = map.nameCol;
+        if (!slots.length) continue;
+
+        const first  = `${col}${slots[0].r}`;
+        const last   = `${col}${slots[slots.length-1].r}`;
+        const values = await readRange(model, `${first}:${last}`);
+        const flat   = values.map(r => r[0]);
+
+        const names  = flat.filter(v => v && v !== '' && v !== 0);
+        const avail  = flat.filter(v => !v || v === '' || v === 0).length;
+        totalAvail  += avail;
+        totalSlots  += slots.length;
+
+        const cc = avail === 0 ? 'r' : avail === 1 ? 'a' : 'g';
+        const nameHtml = names.length
+          ? names.map(n=>`<span class="cname">${n}</span>`).join(' · ')
+          : `<span style="font-style:italic">No sales yet</span>`;
+
+        sizeRows += `
+          <div class="srow">
+            <div class="slbl">${size}</div>
+            <div class="clist">${nameHtml}</div>
+            <div class="acount ${cc}">${avail}</div>
+          </div>`;
+      }
+
+      const ac = totalAvail===0?'var(--red)':totalAvail<=2?'var(--amber)':'var(--green)';
+      html += `
+        <div class="mblock">
+          <div class="mhead">${model}
+            <span class="mavail" style="color:${ac}">${totalAvail} / ${totalSlots} available</span>
+          </div>
+          <div class="srows">${sizeRows}</div>
+        </div>`;
+    }
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<div class="empty">⚠ Could not load inventory.<br><small style="color:var(--muted)">${e.message}</small></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  PRICES
+// ═══════════════════════════════════════════════════════
+function renderPrices() {
+  let rows = '';
+  SIZES.forEach(sz => {
+    rows += `<tr><td>${sz}</td>` + MODELS.map(m=>`<td>$${PRICES[m][sz].toLocaleString()}</td>`).join('') + `</tr>`;
+  });
+  document.getElementById('priceBody').innerHTML = rows;
+
+  let grid = '';
+  SIZES.forEach(sz => {
+    grid += `<div class="icell"><div class="icell-lbl">${sz}</div><div class="icell-val">$${INSTALL[sz].toLocaleString()}</div></div>`;
+  });
+  document.getElementById('installGrid').innerHTML = grid;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════════
+function showLoading(msg='Working…') {
+  document.getElementById('loadMsg').textContent = msg;
+  document.getElementById('loadOverlay').classList.remove('hide');
+}
+function setLoadMsg(msg) { document.getElementById('loadMsg').textContent = msg; }
+function hideLoading() { document.getElementById('loadOverlay').classList.add('hide'); }
+
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>
